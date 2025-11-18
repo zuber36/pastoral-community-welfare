@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Somali Pastoral Aid — Somali Regional State</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <meta name="description" content="Somali Pastoral Aid — projects, fundraising, and live updates for pastoral communities in Ethiopia's Somali Regional State." />
+  <meta name="theme-color" content="#1e3a8a" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+    :root { --brand:#1e3a8a; --accent:#f59e0b; }
+    html { scroll-behavior:smooth; }
+    body { font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial,'Noto Sans',sans-serif; background:#f8fafc; }
+    .color-primary{ background-color:var(--brand);} .color-accent{ background-color:var(--accent);} .text-primary{ color:var(--brand);} .border-primary{ border-color:var(--brand);} .hover\:bg-primary-dark:hover{ background-color:#172a6a;} .hover\:bg-accent-dark:hover{ background-color:#d97706;}
+    /* Modal */
+    .modal-overlay{ position:fixed; inset:0; display:none; background:rgba(0,0,0,.7); align-items:center; justify-content:center; z-index:1000; }
+    .modal-overlay[aria-hidden="false"]{ display:flex; }
+    .modal-content{ max-width:90%; width:520px; max-height:90vh; overflow:auto; animation:fadeIn .25s ease-out; }
+    @keyframes fadeIn{ from{opacity:0; transform:translateY(-8px);} to{opacity:1; transform:none;} }
+    /* LLM output formatting */
+    #llm-output h3{ font-size:1.25rem; font-weight:800; margin:1.25rem 0 .5rem; color:var(--brand); border-bottom:2px solid var(--accent); padding-bottom:.25rem;}
+    #llm-output p{ margin:.75rem 0; line-height:1.65;}
+    #llm-output ul{ list-style:disc; margin-left:1.25rem; }
+    #llm-output a{ color:var(--brand); text-decoration:underline; }
+  </style>
+</head>
+<body class="text-gray-800">
+  <!-- Donation Modal -->
+  <div id="donation-modal" class="modal-overlay" aria-hidden="true" aria-labelledby="donation-title" role="dialog">
+    <div class="modal-content bg-white p-8 rounded-xl shadow-2xl relative" role="document">
+      <button id="modal-close" class="absolute top-4 right-4 text-gray-500 hover:text-gray-900" aria-label="Close donation form">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+      <h2 id="donation-title" class="text-3xl font-bold text-primary mb-2">Make a Commitment</h2>
+      <p class="text-gray-600 mb-6">Support our mission from home. Your committed amount will be tracked; our team will contact you for payment (bank transfer, mobile money).</p>
+      <form id="donation-form">
+        <div class="mb-4">
+          <label for="donation-amount" class="block text-sm font-medium text-gray-700">Commitment Amount (USD)</label>
+          <input inputmode="decimal" type="number" id="donation-amount" name="amount" required min="1" placeholder="e.g., 50" class="mt-1 w-full border border-gray-300 rounded-lg shadow-sm p-3 focus:ring-accent focus:border-accent" />
+        </div>
+        <div class="mb-6">
+          <label for="donation-project" class="block text-sm font-medium text-gray-700">Designate Your Contribution (Sadaqa)</label>
+          <select id="donation-project" name="project" required class="mt-1 w-full border border-gray-300 rounded-lg shadow-sm p-3 focus:ring-accent focus:border-accent">
+            <option value="General Activities">General Voluntary Activities (Sadaqa)</option>
+            <option value="Water Projects">Water Drilling & Sanitation</option>
+            <option value="Infrastructure">Schools & Health Centers Infrastructure</option>
+            <option value="Livelihoods">Sustainable Livelihoods & Agriculture</option>
+          </select>
+        </div>
+        <p id="donation-message" class="mt-3 text-sm font-medium hidden text-center"></p>
+        <button type="submit" class="w-full px-8 py-3 text-lg font-bold text-white color-accent rounded-xl hover:bg-accent-dark transition duration-300 shadow-lg">Commit to Donate</button>
+        <p class="text-xs text-center text-gray-400 mt-3">All commitments are securely recorded in the public ledger.</p>
+        <!-- honeypot for spam bots -->
+        <input type="text" id="_hp" name="_hp" class="hidden" tabindex="-1" autocomplete="off" />
+      </form>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header class="bg-white shadow-lg sticky top-0 z-50" role="banner">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+      <a href="#" class="text-2xl font-extrabold text-primary">Somali Pastoral Aid</a>
+      <div class="text-xs text-gray-500 hidden sm:block">User ID: <span id="auth-user-id">Awaiting Auth…</span></div>
+      <nav class="hidden md:flex space-x-8 items-center" aria-label="Primary">
+        <a href="#mission" class="text-gray-600 hover:text-primary font-medium">Our Mission</a>
+        <a href="#projects" class="text-gray-600 hover:text-primary font-medium">Projects</a>
+        <a href="#llm-tools" class="text-gray-600 hover:text-primary font-medium">✨ Analyst</a>
+        <a href="#updates" class="text-gray-600 hover:text-primary font-medium">Live Updates</a>
+        <a href="#contact" class="px-5 py-2 text-white color-primary rounded-xl hover:bg-primary-dark shadow-md font-semibold">Contact</a>
+        <button id="donate-now-top" class="px-5 py-2 text-white color-accent rounded-xl hover:bg-accent-dark shadow-lg font-bold ml-2">DONATE NOW</button>
+      </nav>
+      <button id="mobile-menu-button" class="md:hidden p-2 rounded-lg text-gray-700 hover:bg-gray-100" aria-expanded="false" aria-controls="mobile-menu" aria-label="Toggle navigation">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"/></svg>
+      </button>
+    </div>
+    <div id="mobile-menu" class="hidden md:hidden bg-white border-t border-gray-100" role="navigation">
+      <a href="#mission" class="block py-2 px-4 text-gray-600 hover:bg-blue-50 hover:text-primary font-medium">Our Mission</a>
+      <a href="#projects" class="block py-2 px-4 text-gray-600 hover:bg-blue-50 hover:text-primary font-medium">Projects</a>
+      <a href="#llm-tools" class="block py-2 px-4 text-gray-600 hover:bg-blue-50 hover:text-primary font-medium">✨ Analyst</a>
+      <a href="#updates" class="block py-2 px-4 text-gray-600 hover:bg-blue-50 hover:text-primary font-medium">Live Updates</a>
+      <a href="#contact" class="block py-2 px-4 text-primary bg-blue-50 hover:bg-blue-100 text-center font-medium">Contact</a>
+      <button id="donate-now-mobile" class="block w-full py-3 px-4 text-white color-accent hover:bg-accent-dark text-center font-bold border-t mt-2">DONATE NOW</button>
+    </div>
+  </header>
+
+  <main id="content" tabindex="-1">
+    <!-- Hero -->
+    <section id="hero" class="py-24 bg-cover bg-center" style="background-image:url('https://placehold.co/1200x600/1e3a8a/ffffff?text=Resilience+in+the+Somali+Region');">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 bg-black/60 p-6 md:p-10 rounded-xl">
+        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white leading-tight">Building Resilience for Pastoral Communities.</h1>
+        <p class="mt-4 text-xl text-gray-100 max-w-4xl">84% of the Somali Regional State relies on pastoralism. Yet these communities face severe marginalization, extreme drought vulnerability, and a lack of essential services.</p>
+        <!-- Fundraising Tracker (fixed id wiring) -->
+        <div id="fundraising-tracker" class="mt-8 bg-white p-4 rounded-xl shadow-lg border-l-4 border-accent">
+          <div class="flex justify-between items-center mb-2">
+            <span class="text-sm font-semibold text-primary">Progress: General Resilience Fund</span>
+            <span class="text-sm font-bold text-accent" id="progress-text">$0 committed / $50,000 goal</span>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-3" aria-hidden="true">
+            <div id="progress-bar" class="bg-amber-500 h-3 rounded-full transition-all duration-700 ease-out" style="width:0%"></div>
+          </div>
+        </div>
+        <div class="mt-8 flex flex-col sm:flex-row gap-4">
+          <a href="#projects" class="px-8 py-4 text-lg font-bold text-white color-accent rounded-xl hover:bg-accent-dark shadow-xl">See Our Work</a>
+          <a href="#challenges" class="px-8 py-4 text-lg font-bold text-white color-primary rounded-xl hover:bg-primary-dark shadow-xl">Understand The Need</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Challenges -->
+    <section id="challenges" class="py-20 bg-white border-b border-gray-200">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12">
+          <h2 class="text-3xl font-bold text-primary sm:text-4xl">The Crisis of Marginalization</h2>
+          <p class="mt-4 text-xl text-gray-500 max-w-3xl mx-auto">Addressing the systemic neglect faced by our pastoralist population.</p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8" role="list">
+          <div role="listitem" class="p-6 rounded-xl shadow-lg border-t-4 border-blue-500 bg-blue-50"><h3 class="text-xl font-semibold">Water Scarcity</h3><p class="text-gray-600">Chronic lack of clean water and sanitation, forcing migration and threatening livestock.</p></div>
+          <div role="listitem" class="p-6 rounded-xl shadow-lg border-t-4 border-blue-500 bg-blue-50"><h3 class="text-xl font-semibold">Service Gaps</h3><p class="text-gray-600">Absence of essential health posts, schools, and infrastructure (roads/power).</p></div>
+          <div role="listitem" class="p-6 rounded-xl shadow-lg border-t-4 border-blue-500 bg-blue-50"><h3 class="text-xl font-semibold">Drought Vulnerability</h3><p class="text-gray-600">High risk to climate disasters due to reliance on rain-fed resources.</p></div>
+          <div role="listitem" class="p-6 rounded-xl shadow-lg border-t-4 border-blue-500 bg-blue-50"><h3 class="text-xl font-semibold">Lack of Investment</h3><p class="text-gray-600">Minimal regional and international investment in livelihoods and agriculture.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Mission -->
+    <section id="mission" class="py-20 bg-gray-50">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 lg:flex lg:items-center lg:space-x-12">
+        <div class="lg:w-1/2">
+          <span class="text-accent font-semibold uppercase tracking-wider">Our Commitment</span>
+          <h2 class="mt-2 text-3xl font-bold text-primary sm:text-4xl">From Vulnerability to Sustainable Livelihoods</h2>
+          <p class="mt-4 text-lg text-gray-700">We envision a future where the Pastoral Communities of the Somali Regional State thrive — self‑sufficient and resilient against drought. Somali Pastoral Aid serves as the bridge between current vulnerability and long‑term stability by partnering with local leaders, donors, and government bodies.</p>
+          <div class="mt-6 space-y-4">
+            <div class="flex items-start gap-3"><svg class="w-6 h-6 text-accent mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.382a9.618 9.618 0 00-12.728 0"/></svg><div><h3 class="font-semibold">Vision</h3><p class="text-gray-700">A resilient, self‑sufficient pastoral community with equitable access to quality health, education, and water services.</p></div></div>
+            <div class="flex items-start gap-3"><svg class="w-6 h-6 text-accent mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c1.657 0 3 .895 3 2s-1.343 2-3 2-3-.895-3-2 .895-2 3-2z"/></svg><div><h3 class="font-semibold">Mission</h3><p class="text-gray-700">Build enduring resilience by developing sustainable livelihoods, vital infrastructure, and equitable access to clean water, education, and health services.</p></div></div>
+          </div>
+        </div>
+        <div class="lg:w-1/2 mt-10 lg:mt-0">
+          <img src="https://placehold.co/800x600/1e3a8a/ffffff?text=Community+Project+in+Action" alt="Community building project in Somali Region" class="rounded-xl shadow-2xl w-full h-auto object-cover" onerror="this.onerror=null;this.src='https://placehold.co/800x600';" />
+        </div>
+      </div>
+    </section>
+
+    <!-- Projects -->
+    <section id="projects" class="py-20 bg-white">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12">
+          <h2 class="text-3xl font-bold text-primary sm:text-4xl">Our Impact Areas</h2>
+          <p class="mt-4 text-xl text-gray-500">See how your partnership helps us deliver change on the ground.</p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <article class="bg-gray-50 p-6 rounded-xl shadow-lg hover:shadow-xl transition border-b-4 border-blue-400" aria-labelledby="p1-title">
+            <div class="text-3xl font-bold text-blue-600 mb-3" aria-hidden="true">💧</div>
+            <h3 id="p1-title" class="text-xl font-semibold">Clean Water & WASH</h3>
+            <p class="text-gray-600">Deep wells, reservoirs, and hygiene education.</p>
+            <button class="mt-3 text-sm font-semibold text-primary hover:text-blue-600 underline" data-topic="Water Projects">Run Impact Analysis →</button>
+          </article>
+          <article class="bg-gray-50 p-6 rounded-xl shadow-lg hover:shadow-xl transition border-b-4 border-green-400" aria-labelledby="p2-title">
+            <div class="text-3xl font-bold text-green-600 mb-3" aria-hidden="true">🏥</div>
+            <h3 id="p2-title" class="text-xl font-semibold">Infrastructure Development</h3>
+            <p class="text-gray-600">Schools, health centers, and health posts near nomadic routes.</p>
+            <button class="mt-3 text-sm font-semibold text-primary hover:text-blue-600 underline" data-topic="Infrastructure Development">Run Impact Analysis →</button>
+          </article>
+          <article class="bg-gray-50 p-6 rounded-xl shadow-lg hover:shadow-xl transition border-b-4 border-amber-400" aria-labelledby="p3-title">
+            <div class="text-3xl font-bold text-amber-600 mb-3" aria-hidden="true">🌾</div>
+            <h3 id="p3-title" class="text-xl font-semibold">Sustainable Livelihoods</h3>
+            <p class="text-gray-600">Irrigation, drought‑resistant crops, and livestock management.</p>
+            <button class="mt-3 text-sm font-semibold text-primary hover:text-blue-600 underline" data-topic="Sustainable Livelihoods">Run Impact Analysis →</button>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- LLM Tool (expects backend proxy) -->
+    <section id="llm-tools" class="py-20 color-primary bg-opacity-95">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12">
+          <h2 class="text-3xl font-bold text-white sm:text-4xl">✨ Resilience Analyst Tool</h2>
+          <p class="mt-4 text-lg text-blue-200">Real‑time, grounded analysis of climate risks and project impact.</p>
+        </div>
+        <div class="bg-white p-8 rounded-xl shadow-2xl max-w-4xl mx-auto">
+          <div class="flex flex-col sm:flex-row gap-4 mb-6">
+            <select id="analysis-topic" class="flex-grow border border-gray-300 rounded-lg shadow-sm p-3 focus:ring-accent focus:border-accent text-lg" aria-label="Select analysis topic">
+              <option value="" disabled selected>Select a Project Area for Analysis</option>
+              <option value="Water Projects">Water Projects & Drought Risk</option>
+              <option value="Infrastructure Development">Infrastructure & Service Gaps</option>
+              <option value="Sustainable Livelihoods">Livelihoods & Food Security</option>
+              <option value="General Somali Regional State Climate Risk">General Somali Regional State Climate Risk</option>
+            </select>
+            <button id="generate-btn" class="px-8 py-3 text-lg font-bold text-white color-accent rounded-xl hover:bg-accent-dark shadow-lg">✨ Generate Report</button>
+          </div>
+          <div id="llm-output" class="mt-8 pt-4 border-t border-gray-200 min-h-32">
+            <p class="text-gray-500 text-center">Select a topic and click 'Generate Report' to see the analysis.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Live Updates -->
+    <section id="updates" class="py-20 bg-gray-50">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12">
+          <h2 class="text-3xl font-bold text-primary sm:text-4xl">Live Project Updates</h2>
+          <p class="mt-4 text-xl text-gray-500">Real‑time progress (Firestore).</p>
+        </div>
+        <div class="mb-12 bg-white p-6 rounded-xl shadow-lg border-l-4 border-accent max-w-2xl mx-auto">
+          <h3 class="text-xl font-bold text-primary mb-3">Demonstration: Add New Update</h3>
+          <div class="flex gap-3">
+            <input type="text" id="new-update-text" placeholder="e.g., Water well drilled in Korahey district!" class="flex-grow border border-gray-300 rounded-lg p-3 focus:ring-accent focus:border-accent" />
+            <button id="post-update" class="px-5 py-3 text-white color-accent rounded-xl hover:bg-accent-dark font-semibold">Post</button>
+          </div>
+          <p id="admin-message" class="mt-3 text-sm hidden"></p>
+        </div>
+        <div id="updates-list" class="space-y-6 max-w-3xl mx-auto">
+          <div class="text-center text-gray-500 p-8 rounded-lg border border-gray-200 bg-white"><p id="loading-indicator">Connecting to database and fetching updates…</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="py-16 color-primary">
+      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <h2 class="text-3xl font-bold text-white sm:text-4xl">Partner With Us. Empower a Community.</h2>
+        <p class="mt-4 text-xl text-blue-200">Your commitment funds schools, water wells, and training for a resilient future.</p>
+        <div class="mt-8"><button id="donate-now-cta" class="px-10 py-4 text-xl font-bold text-white color-accent rounded-xl hover:bg-accent-dark shadow-2xl">COMMIT TO DONATE TODAY</button></div>
+      </div>
+    </section>
+
+    <!-- Contact -->
+    <section id="contact" class="py-20 bg-white">
+      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12">
+          <h2 class="text-3xl font-bold text-primary sm:text-4xl">Volunteer or Partner</h2>
+          <p class="mt-4 text-xl text-gray-500">For collaboration, investment, or official inquiries.</p>
+        </div>
+        <div class="bg-gray-100 p-8 rounded-xl shadow-2xl">
+          <form id="contact-form">
+            <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <div>
+                <label for="contact-name" class="block text-sm font-medium text-gray-700">Your Name / Organization</label>
+                <input type="text" id="contact-name" name="name" required class="mt-1 w-full border border-gray-300 rounded-lg shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500" />
+              </div>
+              <div>
+                <label for="contact-email" class="block text-sm font-medium text-gray-700">Email Address</label>
+                <input type="email" id="contact-email" name="email" required class="mt-1 w-full border border-gray-300 rounded-lg shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500" />
+              </div>
+            </div>
+            <div class="mt-6">
+              <label for="contact-message" class="block text-sm font-medium text-gray-700">Inquiry Subject (e.g., Funding, Media, Volunteering)</label>
+              <textarea id="contact-message" name="message" rows="4" required class="mt-1 w-full border border-gray-300 rounded-lg shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500"></textarea>
+            </div>
+            <div class="mt-6 text-center">
+              <button type="submit" class="w-full sm:w-auto px-8 py-3 text-lg font-semibold text-white color-primary rounded-xl hover:bg-primary-dark shadow-lg">Submit Inquiry (Saves to Firestore)</button>
+            </div>
+            <input type="text" id="hp2" name="hp2" class="hidden" tabindex="-1" autocomplete="off" />
+          </form>
+          <div id="contact-form-message" class="mt-4 text-center text-sm font-medium hidden"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="bg-gray-800 text-white py-10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <p>&copy; <span id="current-year"></span> Somali Pastoral Aid. Committed to Resilience.</p>
+      <div class="mt-4 space-x-4">
+        <a href="#" class="text-gray-400 hover:text-blue-400">Annual Reports</a>
+        <span class="text-gray-500">|</span>
+        <a href="#" class="text-gray-400 hover:text-blue-400">Financial Transparency</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- App Script -->
+  <script type="module">
+    // --- Firebase ---
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
+    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
+    import { getFirestore, collection, addDoc, onSnapshot, query, serverTimestamp, setLogLevel } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+
+    // Constants
+    const FUNDRAISING_GOAL = 50000; // USD
+    setLogLevel('debug');
+
+    // Provided by hosting environment
+    const appId = typeof window.__app_id !== 'undefined' ? window.__app_id : 'default-app-id';
+    const firebaseConfig = typeof window.__firebase_config !== 'undefined' ? JSON.parse(window.__firebase_config) : null;
+    const initialAuthToken = typeof window.__initial_auth_token !== 'undefined' ? window.__initial_auth_token : null;
+
+    let db, auth, userId = null, isAuthReady = false;
+
+    // Elements
+    const authUserEl = document.getElementById('auth-user-id');
+    const progressBarEl = document.getElementById('progress-bar');
+    const progressTextEl = document.getElementById('progress-text');
+    const loadingEl = document.getElementById('loading-indicator');
+    const updatesListEl = document.getElementById('updates-list');
+
+    // Modal controls & focus trap
+    const modal = document.getElementById('donation-modal');
+    const modalCloseBtn = document.getElementById('modal-close');
+    const donateTopBtn = document.getElementById('donate-now-top');
+    const donateCtaBtn = document.getElementById('donate-now-cta');
+    const donateMobileBtn = document.getElementById('donate-now-mobile');
+    const donationForm = document.getElementById('donation-form');
+
+    let lastFocusedBeforeModal = null;
+    function openDonationModal() {
+      lastFocusedBeforeModal = document.activeElement;
+      modal.setAttribute('aria-hidden','false');
+      modal.querySelector('input,button,select,textarea')?.focus();
+      document.body.style.overflow = 'hidden';
+    }
+    function closeDonationModal() {
+      modal.setAttribute('aria-hidden','true');
+      document.body.style.overflow = '';
+      lastFocusedBeforeModal?.focus();
+      const msg = document.getElementById('donation-message');
+      msg.classList.add('hidden');
+    }
+    modalCloseBtn.addEventListener('click', closeDonationModal);
+    [donateTopBtn, donateCtaBtn, donateMobileBtn].forEach(btn=>btn&&btn.addEventListener('click', openDonationModal));
+    modal.addEventListener('click', (e)=>{ if(e.target===modal) closeDonationModal(); });
+    document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && modal.getAttribute('aria-hidden')==='false') closeDonationModal(); });
+
+    // Mobile nav
+    const menuButton = document.getElementById('mobile-menu-button');
+    const mobileMenu = document.getElementById('mobile-menu');
+    menuButton?.addEventListener('click', ()=>{ const open = mobileMenu.classList.toggle('hidden'); menuButton.setAttribute('aria-expanded', String(!open)); });
+    mobileMenu?.querySelectorAll('a').forEach(a=>a.addEventListener('click', ()=> mobileMenu.classList.add('hidden')));
+
+    // Init Firebase
+    if (!firebaseConfig) {
+      loadingEl.textContent = 'Firebase is not configured. Real‑time features are disabled.';
+      console.error('Firebase config not found.');
+    } else {
+      try {
+        const app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+        onAuthStateChanged(auth, async (user)=>{
+          if (user) {
+            userId = user.uid; isAuthReady = true;
+            authUserEl.textContent = userId.substring(0,8)+'…';
+            listenForProjectUpdates();
+            listenForFundraisingProgress();
+          } else {
+            try {
+              if (initialAuthToken) await signInWithCustomToken(auth, initialAuthToken); else await signInAnonymously(auth);
+            } catch(err){ console.error('Auth error → anonymous fallback', err); await signInAnonymously(auth); }
+          }
+        });
+      } catch (e) { console.error('Firebase initialization failed:', e); }
+    }
+
+    // Firestore: donation progress
+    function listenForFundraisingProgress(){
+      if (!db || !isAuthReady) return;
+      const path = `/artifacts/${appId}/public/data/donation_commitments`;
+      const q = query(collection(db, path));
+      onSnapshot(q, (snap)=>{
+        let total = 0; snap.forEach(d=>{ const x = d.data(); if (typeof x.amount==='number' && x.amount>0) total += x.amount; });
+        const pct = Math.min(100, (total / FUNDRAISING_GOAL) * 100);
+        progressBarEl.style.width = pct.toFixed(2)+'%';
+        const fmt = (n)=> n.toLocaleString('en-US',{ style:'currency', currency:'USD', minimumFractionDigits:0 });
+        progressTextEl.textContent = `${fmt(total)} committed / ${fmt(FUNDRAISING_GOAL)} goal`;
+      }, (err)=> console.error('Commitments snapshot error', err));
+    }
+
+    // Firestore: public updates
+    function listenForProjectUpdates(){
+      if (!db || !isAuthReady) return;
+      const path = `/artifacts/${appId}/public/data/project_updates`;
+      const q = query(collection(db, path));
+      onSnapshot(q, (snap)=>{
+        const updates = []; snap.forEach(doc=>updates.push({ id:doc.id, ...doc.data() }));
+        updates.sort((a,b)=> (b.timestamp?.toMillis?.() ?? b.timestamp ?? 0) - (a.timestamp?.toMillis?.() ?? a.timestamp ?? 0));
+        renderProjectUpdates(updates);
+      }, (err)=>{ console.error('Updates snapshot error', err); loadingEl.textContent='Failed to load updates.'; });
+    }
+
+    function renderProjectUpdates(list){
+      updatesListEl.innerHTML = '';
+      if (!list.length) {
+        updatesListEl.innerHTML = `<div class="text-center text-gray-500 p-8 rounded-lg border border-gray-200 bg-white">No project updates available yet.</div>`; return;
+      }
+      list.forEach(u=>{
+        const dt = u.timestamp?.toDate ? u.timestamp.toDate() : new Date(u.timestamp);
+        updatesListEl.insertAdjacentHTML('beforeend',`
+          <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-primary">
+            <p class="text-gray-700 text-lg mb-2">${(u.text||'').toString().replace(/[<>&]/g, s=>({"<":"&lt;",">":"&gt;","&":"&amp;"}[s]))}</p>
+            <p class="text-xs text-gray-400">Posted: ${dt? dt.toLocaleString(): '—'}</p>
+          </div>`);
+      });
+    }
+
+    // Save new update
+    document.getElementById('post-update')?.addEventListener('click', async ()=>{
+      const input = document.getElementById('new-update-text');
+      const msg = document.getElementById('admin-message');
+      const text = input.value.trim();
+      if (!db || !isAuthReady) return showMsg(msg,'Error: Database not ready.','red');
+      if (!text) return showMsg(msg,'Update text cannot be empty.','red');
+      try{
+        await addDoc(collection(db, `/artifacts/${appId}/public/data/project_updates`), { text, timestamp: serverTimestamp(), userId });
+        showMsg(msg,'Update posted successfully!','green'); input.value='';
+      }catch(e){ console.error(e); showMsg(msg,'Failed to post update.','red'); }
+    });
+
+    // Donation form
+    donationForm?.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const hp = document.getElementById('_hp'); if (hp && hp.value) return; // bot
+      const amount = parseInt(document.getElementById('donation-amount').value,10);
+      const project = document.getElementById('donation-project').value;
+      const message = document.getElementById('donation-message');
+      if (!db || !isAuthReady) return showMsg(message,'Error: System not ready. Please try again later.','red', true);
+      if (isNaN(amount) || amount<=0) return showMsg(message,'Please enter a valid commitment amount.','red', true);
+      try{
+        await addDoc(collection(db, `/artifacts/${appId}/public/data/donation_commitments`), { amount, project, timestamp: serverTimestamp(), userId, status:'Committed' });
+        showMsg(message, `Thank you! Your $${amount} commitment for ‘${project}’ has been recorded. We will be in touch!`, 'green', true);
+        donationForm.reset();
+        setTimeout(()=> closeDonationModal(), 4000);
+      }catch(err){ console.error(err); showMsg(message,'Submission failed. Check your connection.','red', true); }
+    });
+
+    // Contact form (private collection)
+    const contactForm = document.getElementById('contact-form');
+    const contactMsg = document.getElementById('contact-form-message');
+    contactForm?.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      if (document.getElementById('hp2').value) return; // bot
+      const name = document.getElementById('contact-name').value.trim();
+      const email = document.getElementById('contact-email').value.trim();
+      const message = document.getElementById('contact-message').value.trim();
+      if (!db || !isAuthReady) return showMsg(contactMsg,'Error: System not ready.','red', true);
+      try{
+        await addDoc(collection(db, `/artifacts/${appId}/users/${userId}/volunteer_interests`), { name, email, message, timestamp: serverTimestamp() });
+        showMsg(contactMsg,'Thank you! Your inquiry has been securely saved.','green', true);
+        contactForm.reset();
+      }catch(err){ console.error(err); showMsg(contactMsg,'Submission failed.','red', true); }
+    });
+
+    function showMsg(el, text, color='green', block=false){
+      el.textContent = text; el.classList.remove('hidden');
+      el.classList.toggle('text-green-600', color==='green');
+      el.classList.toggle('text-red-600', color==='red');
+      if (block) el.scrollIntoView({ behavior:'smooth', block:'center' });
+      setTimeout(()=> el.classList.add('hidden'), 6000);
+    }
+
+    // Footer year
+    document.getElementById('current-year').textContent = new Date().getFullYear();
+
+    // LLM — use backend proxy instead of exposing API key in browser
+    const generateBtn = document.getElementById('generate-btn');
+    const topicSelect = document.getElementById('analysis-topic');
+    const llmOut = document.getElementById('llm-output');
+
+    async function generateAnalysis(topic){
+      if (!topic) { llmOut.innerHTML = `<p class="text-red-500 text-center">Please select a project area to run the analysis.</p>`; return; }
+      llmOut.innerHTML = `<div class="text-center p-8">
+        <svg class="animate-spin h-8 w-8 text-primary mx-auto mb-4" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+        <p class="text-gray-600 font-semibold">Generating Real‑Time Resilience Report for: ${topic}…</p>
+        <p class="text-sm text-gray-400 mt-1">Backed by a server proxy (Gemini/grounded search).</p>
+      </div>`;
+      try{
+        const res = await fetch('/api/analyze', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ topic }) });
+        if (!res.ok) throw new Error('Bad response');
+        const { html, sources } = await res.json();
+        const sourcesHtml = (sources?.length? `<h4 class="text-lg font-semibold text-primary mt-6 mb-2">Sources Used</h4><ul class="list-disc ml-5">${sources.map((s,i)=>`<li><a href="${s.uri}" target="_blank" rel="noopener">${s.title||s.uri}</a></li>`).join('')}</ul>`: '');
+        llmOut.innerHTML = `<h3 class="text-2xl font-bold text-primary mb-2">${topic} Analysis</h3><div id="analysis-content">${html}</div>${sourcesHtml}`;
+      }catch(err){
+        console.error(err);
+        llmOut.innerHTML = `<p class="text-red-500 text-center">Analysis service is not configured. Deploy a backend at <code>/api/analyze</code> (see notes) or try again later.</p>`;
+      }
+    }
+
+    generateBtn?.addEventListener('click', ()=> generateAnalysis(topicSelect.value));
+    document.querySelectorAll('[data-topic]')?.forEach(btn=> btn.addEventListener('click', ()=>{ topicSelect.value = btn.dataset.topic; generateAnalysis(btn.dataset.topic); }));
+  </script>
+</body>
+</html>

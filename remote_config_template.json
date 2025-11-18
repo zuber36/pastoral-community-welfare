@@ -1,0 +1,124 @@
+{
+  "parameters": {
+    "site_status": {
+      "defaultValue": {
+        "value": "live"
+      },
+      "description": "Controls whether the website is live, maintenance, or offline."
+    },
+    "maintenance_message": {
+      "defaultValue": {
+        "value": "We are performing scheduled maintenance. Please check back soon."
+      },
+      "description": "Displayed when site_status = maintenance."
+    },
+    "enable_donations": {
+      "defaultValue": {
+        "value": true
+      },
+      "description": "Enable or disable the donation system."
+    },
+    "enable_updates_feed": {
+      "defaultValue": {
+        "value": true
+      },
+      "description": "Enable or disable the project updates feed."
+    },
+    "minimum_donation_amount": {
+      "defaultValue": {
+        "value": 1
+      },
+      "description": "Minimum donation amount in USD."
+    },
+    "donation_banner_message": {
+      "defaultValue": {
+        "value": "Your contributions help build resilience in Somali pastoral communities."
+      },
+      "description": "Banner message above donation section."
+    },
+    "enable_popular_donation_buttons": {
+      "defaultValue": {
+        "value": true
+      },
+      "description": "Enable quick donation amount buttons."
+    },
+    "max_updates_to_display": {
+      "defaultValue": {
+        "value": 20
+      },
+      "description": "Maximum number of updates shown."
+    },
+    "updates_sort_order": {
+      "defaultValue": {
+        "value": "desc"
+      },
+      "description": "Sorting order for updates (asc or desc)."
+    },
+    "allow_public_update_posting": {
+      "defaultValue": {
+        "value": false
+      },
+      "description": "Allow the public to submit updates."
+    },
+    "emergency_alert_enabled": {
+      "defaultValue": {
+        "value": false
+      },
+      "description": "Enable emergency alert banner."
+    },
+    "emergency_alert_text": {
+      "defaultValue": {
+        "value": ""
+      },
+      "description": "Message displayed in the emergency banner."
+    },
+    "primary_brand_color": {
+      "defaultValue": {
+        "value": "#1e3a8a"
+      },
+      "description": "Primary brand color."
+    },
+    "accent_color": {
+      "defaultValue": {
+        "value": "#f59e0b"
+      },
+      "description": "Accent color."
+    },
+    "homepage_banner_image": {
+      "defaultValue": {
+        "value": ""
+      },
+      "description": "URL of homepage banner image."
+    },
+    "enable_contact_form": {
+      "defaultValue": {
+        "value": true
+      },
+      "description": "Enable or disable volunteer/contact form."
+    },
+    "contact_form_success_message": {
+      "defaultValue": {
+        "value": "Thank you! We will contact you soon."
+      },
+      "description": "Displayed after successful contact submission."
+    },
+    "contact_form_disabled_message": {
+      "defaultValue": {
+        "value": "This service is temporarily unavailable."
+      },
+      "description": "Displayed if contact form is disabled."
+    },
+    "enable_new_donation_ui": {
+      "defaultValue": {
+        "value": false
+      },
+      "description": "Enables the new donation UI for testing."
+    },
+    "beta_mode": {
+      "defaultValue": {
+        "value": false
+      },
+      "description": "Enable beta mode label and experimental features."
+    }
+  }
+}
